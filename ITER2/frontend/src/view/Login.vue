@@ -4,17 +4,27 @@ import { useRouter } from 'vue-router'
 import api from '../axios'
 
 const router = useRouter()
-const username = ref('testuser')
-const password = ref('test123')
+const email = ref('')  // Changed from username
+const password = ref('')
 const error = ref('')
 
 const handleLogin = async () => {
+  error.value = ''
+  
   try {
-    const res = await api.post('/login', { username: username.value, password: password.value })
-    localStorage.setItem('token', res.data.token) // SAVE TOKEN
+    const res = await api.post('/login', {
+      email: email.value,  // Send email, not username
+      password: password.value
+    })
+    
+    // Save token AND user info
+    localStorage.setItem('token', res.data.token)
+    localStorage.setItem('user', JSON.stringify(res.data.user))
+    
     router.push('/dashboard')
+    
   } catch (err) {
-    error.value = 'Login failed'
+    error.value = err.response?.data?.message || 'Login failed'
   }
 }
 </script>
@@ -22,40 +32,10 @@ const handleLogin = async () => {
 <template>
   <div>
     <h1>Login</h1>
-    <input v-model="username" placeholder="Username" />
-    <input v-model="password" type="password" placeholder="Password" />
+    <input v-model="email" placeholder="Email" type="email" />
+    <input v-model="password" placeholder="Password" type="password" />
     <button @click="handleLogin">Login</button>
     <p v-if="error" style="color:red">{{ error }}</p>
-    <router-link to="/register">Need an account?</router-link>
+    <router-link to="/register">Need an account? Register</router-link>
   </div>
 </template>
-
-const handleLogin = async () => {
-  error.value = ''
-  
-  try {
-    console.log('Attempting login with:', { username: username.value }) // DEBUG 1
-    
-    const res = await api.post('/login', { 
-      username: username.value, 
-      password: password.value 
-    })
-    
-    console.log('Login SUCCESS response:', res.data) // DEBUG 2
-    
-    // Check if token exists in response
-    if (res.data.token) {
-      console.log('Saving token:', res.data.token) // DEBUG 3
-      localStorage.setItem('token', res.data.token)
-      router.push('/dashboard')
-    } else {
-      console.error('No token in response!', res.data) // DEBUG 4
-      error.value = 'Login failed: No token received'
-    }
-    
-  } catch (err) {
-    console.error('Login ERROR:', err) // DEBUG 5
-    console.error('Error details:', err.response?.data) // DEBUG 6
-    error.value = err.response?.data?.message || 'Login failed'
-  }
-}
